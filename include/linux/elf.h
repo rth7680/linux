@@ -75,4 +75,17 @@ static inline int arch_parse_property(void *ehdr, void *phdr, struct file *f,
 static inline int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
 				   u32 pr_type, u32 *feature) { return 0; }
 #endif
+
+#ifdef CONFIG_ARCH_HAVE_ELF_PROT
+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+			 bool has_interp, bool is_interp);
+#else
+static inline int arch_elf_adjust_prot(int prot,
+				       const struct arch_elf_state *state,
+				       bool has_interp, bool is_interp)
+{
+	return prot;
+}
+#endif
+
 #endif /* _LINUX_ELF_H */
