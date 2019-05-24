@@ -126,6 +126,7 @@
 #ifndef __ASSEMBLY__
 
 #include <linux/bug.h>
+#include <linux/fs.h>
 #include <asm/processor.h> /* for signal_minsigstksz, used by ARCH_DLINFO */
 
 typedef unsigned long elf_greg_t;
@@ -220,6 +221,33 @@ extern int aarch32_setup_additional_pages(struct linux_binprm *bprm,
 					aarch32_setup_additional_pages
 
 #endif /* CONFIG_COMPAT */
+
+struct arch_elf_state {
+	int flags;
+};
+
+#define ARM64_ELF_BTI		(1 << 0)
+
+#define INIT_ARCH_ELF_STATE {			\
+	.flags = 0,				\
+}
+
+int arch_parse_property(void *ehdr, void *phdr, struct file *f, bool interp,
+			struct arch_elf_state *state);
+
+static inline int arch_elf_pt_proc(void *ehdr, void *phdr,
+				   struct file *f, bool is_interp,
+				   struct arch_elf_state *state)
+{
+	return 0;
+}
+
+static inline int arch_check_elf(void *ehdr, bool has_interp,
+				 void *interp_ehdr,
+				 struct arch_elf_state *state)
+{
+	return 0;
+}
 
 #endif /* !__ASSEMBLY__ */
 

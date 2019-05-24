@@ -22,12 +22,14 @@
 
 #include <linux/compat.h>
 #include <linux/efi.h>
+#include <linux/elf.h>
 #include <linux/export.h>
 #include <linux/sched.h>
 #include <linux/sched/debug.h>
 #include <linux/sched/task.h>
 #include <linux/sched/task_stack.h>
 #include <linux/kernel.h>
+#include <linux/mman.h>
 #include <linux/mm.h>
 #include <linux/stddef.h>
 #include <linux/unistd.h>
@@ -552,3 +554,56 @@ void arch_setup_new_exec(void)
 
 	ptrauth_thread_init_user(current);
 }
+
+#ifdef CONFIG_BINFMT_ELF
+int arch_parse_property(void *ehdr, void *phdr, struct file *f, bool interp,
+			struct arch_elf_state *state)
+{
+	union any_elf_hdr {
+		struct elf32_hdr hdr32;
+		struct elf64_hdr hdr64;
+	};
+	const union any_elf_hdr *e = ehdr;
+
+	int ret;
+	u32 val;
+
+	/* Currently we have GNU program properties only for native: */
+	if (e->hdr64.e_machine != EM_AARCH64) {
+		WARN_ON(!IS_ENABLED(CONFIG_COMPAT) ||
+			e->hdr64.e_machine != EM_ARM);
+
+		return 0;
+	}
+
+	ret = get_gnu_property(ehdr, phdr, f,
+			       GNU_PROPERTY_AARCH64_FEATURE_1_AND,
+			       &val);
+	if (ret)
+		return ret;
+
+	if (val & GNU_PROPERTY_AARCH64_FEATURE_1_BTI) {
+		if (!system_supports_bti())
+			return -EINVAL;
+
+		state->flags |= ARM64_ELF_BTI;
+	}
+
+	return 0;
+}
+
+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+			 bool has_interp, bool is_interp)
+{
+	if (is_interp != has_interp)
+		return prot;
+
+	if (!(state->flags & ARM64_ELF_BTI))
+		return prot;
+
+	if (prot & PROT_EXEC)
+		prot |= PROT_BTI_GUARDED;
+
+	return prot;
+}
+#endif
