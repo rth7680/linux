@@ -66,6 +66,7 @@ static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
 	unsigned long flags = current_thread_info()->flags;
 
 	regs->orig_x0 = regs->regs[0];
+	regs->pstate &= ~(regs->pstate & PSR_BTYPE_MASK);
 	regs->syscallno = scno;
 
 	local_daif_restore(DAIF_PROCCTX);

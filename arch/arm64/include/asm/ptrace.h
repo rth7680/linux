@@ -41,6 +41,7 @@
 
 /* Additional SPSR bits not exposed in the UABI */
 #define PSR_IL_BIT		(1 << 20)
+#define PSR_BTYPE_CALL		(2 << 10)
 
 /* AArch32-specific ptrace requests */
 #define COMPAT_PTRACE_GETREGS		12

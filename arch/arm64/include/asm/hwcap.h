@@ -95,6 +95,7 @@
 #define KERNEL_HWCAP_SVEBITPERM		__khwcap2_feature(SVEBITPERM)
 #define KERNEL_HWCAP_SVESHA3		__khwcap2_feature(SVESHA3)
 #define KERNEL_HWCAP_SVESM4		__khwcap2_feature(SVESM4)
+#define KERNEL_HWCAP_BTI		__khwcap2_feature(BTI)
 
 /*
  * This yields a mask that user programs can use to figure out what

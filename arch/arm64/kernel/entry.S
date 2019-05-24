@@ -707,6 +707,8 @@ el0_sync:
 	b.eq	el0_sp_pc
 	cmp	x24, #ESR_ELx_EC_UNKNOWN	// unknown exception in EL0
 	b.eq	el0_undef
+	cmp	x24, #ESR_ELx_EC_BTI		// branch target exception
+	b.eq	el0_bti
 	cmp	x24, #ESR_ELx_EC_BREAKPT_LOW	// debug exception in EL0
 	b.ge	el0_dbg
 	b	el0_inv
@@ -850,6 +852,15 @@ el0_undef:
 	ct_user_exit
 	mov	x0, sp
 	bl	do_undefinstr
+	b	ret_to_user
+el0_bti:
+	/*
+	 * Branch target exception
+	 */
+	enable_daif
+	ct_user_exit
+	mov	x0, sp
+	bl	do_bti
 	b	ret_to_user
 el0_sys:
 	/*
