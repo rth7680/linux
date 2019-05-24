@@ -852,6 +852,19 @@ out_free_interp:
 			}
 	}
 
+	if (interpreter) {
+		retval = arch_parse_property(&loc->interp_elf_ex,
+					     interp_elf_phdata,
+					     interpreter, true, &arch_state);
+	} else {
+		retval = arch_parse_property(&loc->elf_ex,
+					     elf_phdata,
+					     bprm->file, false, &arch_state);
+	}
+
+	if (retval < 0)
+		goto out_free_dentry;
+
 	/*
 	 * Allow arch code to reject the ELF at this point, whilst it's
 	 * still possible to return an error to the code that invoked
@@ -1079,19 +1092,6 @@ out_free_interp:
 		retval = -EFAULT; /* Nobody gets to see this, but.. */
 		goto out_free_dentry;
 	}
-
-	if (interpreter) {
-		retval = arch_setup_property(&loc->interp_elf_ex,
-					     interp_elf_phdata,
-					     interpreter, true);
-	} else {
-		retval = arch_setup_property(&loc->elf_ex,
-					     elf_phdata,
-					     bprm->file, false);
-	}
-
-	if (retval < 0)
-		goto out_free_dentry;
 
 	if (interpreter) {
 		unsigned long interp_map_addr = 0;
