@@ -56,4 +56,16 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
 extern int elf_coredump_extra_notes_size(void);
 extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
 #endif
+
+#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
+extern int arch_setup_property(void *ehdr, void *phdr, struct file *f,
+			       bool interp);
+extern int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
+			    u32 pr_type, u32 *feature);
+#else
+static inline int arch_setup_property(void *ehdr, void *phdr, struct file *f,
+				      bool interp) { return 0; }
+static inline int get_gnu_property(void *ehdr_p, void *phdr_p, struct file *f,
+				   u32 pr_type, u32 *feature) { return 0; }
+#endif
 #endif /* _LINUX_ELF_H */

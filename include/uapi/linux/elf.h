@@ -372,6 +372,7 @@ typedef struct elf64_shdr {
 #define NT_PRFPREG	2
 #define NT_PRPSINFO	3
 #define NT_TASKSTRUCT	4
+#define NT_GNU_PROPERTY_TYPE_0 5
 #define NT_AUXV		6
 /*
  * Note to userspace developers: size of NT_SIGINFO note may increase
@@ -442,5 +443,12 @@ typedef struct elf64_note {
   Elf64_Word n_descsz;	/* Content size */
   Elf64_Word n_type;	/* Content type */
 } Elf64_Nhdr;
+
+/* .note.gnu.property types */
+#define GNU_PROPERTY_X86_FEATURE_1_AND		(0xc0000002)
+
+/* Bits of GNU_PROPERTY_X86_FEATURE_1_AND */
+#define GNU_PROPERTY_X86_FEATURE_1_IBT		(0x00000001)
+#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
 
 #endif /* _UAPI_LINUX_ELF_H */
