@@ -40,8 +40,10 @@
 #define GIC_PRIO_IRQOFF		(GIC_PRIO_IRQON & ~0x80)
 
 /* Additional SPSR bits not exposed in the UABI */
+#define PSR_BTYPE_SHIFT		10
+
 #define PSR_IL_BIT		(1 << 20)
-#define PSR_BTYPE_CALL		(2 << 10)
+#define PSR_BTYPE_CALL		(2 << PSR_BTYPE_SHIFT)
 
 /* AArch32-specific ptrace requests */
 #define COMPAT_PTRACE_GETREGS		12
