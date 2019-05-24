@@ -160,7 +160,15 @@ infrastructure:
      x--------------------------------------------------x
 
 
-  3) MIDR_EL1 - Main ID Register
+  3) ID_AA64PFR1_EL1 - Processor Feature Register 1
+     x--------------------------------------------------x
+     | Name                         |  bits   | visible |
+     |--------------------------------------------------|
+     | SSBS                         | [7-4]   |    y    |
+     x--------------------------------------------------x
+
+
+  4) MIDR_EL1 - Main ID Register
      x--------------------------------------------------x
      | Name                         |  bits   | visible |
      |--------------------------------------------------|
@@ -179,7 +187,7 @@ infrastructure:
    as available on the CPU where it is fetched and is not a system
    wide safe value.
 
-  4) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
+  5) ID_AA64ISAR1_EL1 - Instruction set attribute register 1
 
      x--------------------------------------------------x
      | Name                         |  bits   | visible |
@@ -201,7 +209,7 @@ infrastructure:
      | DPB                          | [3-0]   |    y    |
      x--------------------------------------------------x
 
-  5) ID_AA64MMFR2_EL1 - Memory model feature register 2
+  6) ID_AA64MMFR2_EL1 - Memory model feature register 2
 
      x--------------------------------------------------x
      | Name                         |  bits   | visible |
@@ -209,7 +217,7 @@ infrastructure:
      | AT                           | [35-32] |    y    |
      x--------------------------------------------------x
 
-  6) ID_AA64ZFR0_EL1 - SVE feature ID register 0
+  7) ID_AA64ZFR0_EL1 - SVE feature ID register 0
 
      x--------------------------------------------------x
      | Name                         |  bits   | visible |
