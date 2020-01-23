@@ -4,6 +4,7 @@
  */
 
 #include <linux/bitops.h>
+#include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/prctl.h>
@@ -19,6 +20,21 @@
 #include <asm/mte.h>
 #include <asm/ptrace.h>
 #include <asm/sysreg.h>
+
+/* panic_on_mte_fault off by default */
+int panic_on_mte_fault __read_mostly;
+
+static __init int mte_init(char *p)
+{
+	if (!p)
+		return -EINVAL;
+
+	if (!strncmp(p, "on", 2))
+		panic_on_mte_fault = 1;
+
+	return 0;
+}
+early_param("panic_on_mte_fault", mte_init);
 
 static void mte_sync_page_tags(struct page *page, pte_t *ptep, bool check_swap)
 {

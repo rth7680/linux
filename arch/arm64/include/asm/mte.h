@@ -35,8 +35,20 @@ void mte_free_tag_storage(char *storage);
 /* track which pages have valid allocation tags */
 #define PG_mte_tagged	PG_arch_2
 
+/*
+ * panic_on_mte_fault is a kernel boot option that represents the way on
+ * which the exception handler behaves:
+ *  - off (default) - the exception handler catches only the first fault
+ *                    and prints the error message afterwards it disables
+ *                    the extension.
+ *  - on            - the exception handler generates a panic at the first
+ *                    fault.
+ */
+extern int panic_on_mte_fault;
+
 void mte_sync_tags(pte_t *ptep, pte_t pte);
 void mte_copy_page_tags(void *kto, const void *kfrom);
+
 void flush_mte_state(void);
 void mte_thread_switch(struct task_struct *next);
 void mte_suspend_exit(void);
@@ -50,12 +62,15 @@ int mte_ptrace_copy_tags(struct task_struct *child, long request,
 /* unused if !CONFIG_ARM64_MTE, silence the compiler */
 #define PG_mte_tagged	0
 
+#define panic_on_mte_fault			1
+
 static inline void mte_sync_tags(pte_t *ptep, pte_t pte)
 {
 }
 static inline void mte_copy_page_tags(void *kto, const void *kfrom)
 {
 }
+
 static inline void flush_mte_state(void)
 {
 }
@@ -80,7 +95,7 @@ static inline int mte_ptrace_copy_tags(struct task_struct *child,
 	return -EIO;
 }
 
-#endif
+#endif /* CONFIG_ARM64_MTE */
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ASM_MTE_H  */
