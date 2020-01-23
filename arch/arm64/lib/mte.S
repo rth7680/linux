@@ -149,3 +149,15 @@ SYM_FUNC_START(mte_restore_page_tags)
 
 	ret
 SYM_FUNC_END(mte_restore_page_tags)
+
+/*
+ * Get Tagged Address
+ *   x0 - source pointer
+ * Returns:
+ *   A pointer with the correct tag to access memory
+ */
+SYM_FUNC_START(mte_get_tagged_addr)
+	ldg	x0, [x0]
+
+	ret
+SYM_FUNC_END(mte_get_tagged_addr)

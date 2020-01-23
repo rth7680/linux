@@ -5,13 +5,18 @@
 #ifndef __ASM_MTE_H
 #define __ASM_MTE_H
 
+#include <linux/bits.h>
+
 #define MTE_GRANULE_SIZE	UL(16)
 #define MTE_GRANULE_MASK	(~(MTE_GRANULE_SIZE - 1))
 #define MTE_TAG_SHIFT		56
 #define MTE_TAG_SIZE		4
+#define MTE_TAG_MASK		GENMASK((MTE_TAG_SHIFT + (MTE_TAG_SIZE - 1)), MTE_TAG_SHIFT)
+#define MTE_TAG_MAX		(MTE_TAG_MASK >> MTE_TAG_SHIFT)
 
 #ifndef __ASSEMBLY__
 
+#include <linux/bitfield.h>
 #include <linux/page-flags.h>
 
 #include <asm/pgtable-types.h>
@@ -46,9 +51,13 @@ void mte_free_tag_storage(char *storage);
  */
 extern int panic_on_mte_fault;
 
+#define mte_get_ptr_tag(ptr) \
+		((u8)(FIELD_GET(MTE_TAG_MASK, (u64)ptr)))
+
 void mte_sync_tags(pte_t *ptep, pte_t pte);
 void mte_copy_page_tags(void *kto, const void *kfrom);
 
+void *mte_get_tagged_addr(void *src);
 void flush_mte_state(void);
 void mte_thread_switch(struct task_struct *next);
 void mte_suspend_exit(void);
@@ -63,6 +72,7 @@ int mte_ptrace_copy_tags(struct task_struct *child, long request,
 #define PG_mte_tagged	0
 
 #define panic_on_mte_fault			1
+#define mte_get_ptr_tag(ptr)			0xf
 
 static inline void mte_sync_tags(pte_t *ptep, pte_t pte)
 {
@@ -71,6 +81,10 @@ static inline void mte_copy_page_tags(void *kto, const void *kfrom)
 {
 }
 
+static inline void *mte_get_tagged_addr(void *src)
+{
+	return src;
+}
 static inline void flush_mte_state(void)
 {
 }

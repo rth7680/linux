@@ -33,6 +33,7 @@
 #include <asm/debug-monitors.h>
 #include <asm/esr.h>
 #include <asm/kprobes.h>
+#include <asm/mte.h>
 #include <asm/processor.h>
 #include <asm/sysreg.h>
 #include <asm/system_misc.h>
@@ -222,6 +223,20 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
 	return 1;
 }
 
+static bool is_el1_mte_sync_tag_check_fault(unsigned int esr)
+{
+	unsigned int ec = ESR_ELx_EC(esr);
+	unsigned int fsc = esr & ESR_ELx_FSC;
+
+	if (ec != ESR_ELx_EC_DABT_CUR)
+		return false;
+
+	if (fsc == ESR_ELx_FSC_MTE)
+		return true;
+
+	return false;
+}
+
 static bool is_el1_instruction_abort(unsigned int esr)
 {
 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_CUR;
@@ -294,6 +309,17 @@ static void die_kernel_fault(const char *msg, unsigned long addr,
 	do_exit(SIGKILL);
 }
 
+static void report_tag_fault(unsigned long addr)
+{
+	unsigned long tagged_addr =
+		(unsigned long)mte_get_tagged_addr((void *)addr);
+
+	pr_alert("Memory Tagging Extension Fault at 0x%llx, tag in pointer: 0x%x tag in memory: 0x%x\n",
+			untagged_addr((__u64)addr),
+			mte_get_ptr_tag(addr),
+			mte_get_ptr_tag(tagged_addr));
+}
+
 static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 			      struct pt_regs *regs)
 {
@@ -317,11 +343,15 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 			msg = "execute from non-executable memory";
 		else
 			msg = "read from unreadable memory";
+	} else if (is_el1_mte_sync_tag_check_fault(esr)) {
+		report_tag_fault(addr);
+		msg = "memory tagging extension fault";
 	} else if (addr < PAGE_SIZE) {
 		msg = "NULL pointer dereference";
 	} else {
 		msg = "paging request";
 	}
+
 
 	die_kernel_fault(msg, addr, esr, regs);
 }
@@ -658,10 +688,32 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 	return 0;
 }
 
+static int do_tag_recovery(unsigned long addr)
+{
+	report_tag_fault(addr);
+
+	/*
+	 * Disable Memory Tagging Extension Tag Checking on the local CPU
+	 * for the current EL.
+	 * It will be done lazily on the other CPUs when they will hit a
+	 * tag fault.
+	 */
+	sysreg_clear_set(sctlr_el1, SCTLR_ELx_TCF_MASK, SCTLR_ELx_TCF_NONE);
+	isb();
+
+	return 0;
+}
+
+
 static int do_tag_check_fault(unsigned long addr, unsigned int esr,
 			      struct pt_regs *regs)
 {
-	do_bad_area(addr, esr, regs);
+	/* The tag check fault (TCF) is per TTBR */
+	if (panic_on_mte_fault || is_ttbr0_addr(addr))
+		do_bad_area(addr, esr, regs);
+	else
+		do_tag_recovery(addr);
+
 	return 0;
 }
 
