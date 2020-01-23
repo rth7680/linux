@@ -1670,6 +1670,9 @@ static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
 	write_sysreg_s(0, SYS_TFSR_EL1);
 	write_sysreg_s(0, SYS_TFSRE0_EL1);
 
+	/* Enable Match-All at EL1 */
+	sysreg_clear_set(tcr_el1, 0, SYS_TCR_EL1_TCMA1);
+
 	/*
 	 * CnP must be enabled only after the MAIR_EL1 register has been set
 	 * up. Inconsistent MAIR_EL1 between CPUs sharing the same TLB may
@@ -1687,6 +1690,9 @@ static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
 	mair &= ~MAIR_ATTRIDX(MAIR_ATTR_MASK, MT_NORMAL_TAGGED);
 	mair |= MAIR_ATTRIDX(MAIR_ATTR_NORMAL_TAGGED, MT_NORMAL_TAGGED);
 	write_sysreg_s(mair, SYS_MAIR_EL1);
+
+	/* Enable MTE Sync Mode for EL1 */
+	sysreg_clear_set(sctlr_el1, SCTLR_ELx_TCF_MASK, SCTLR_ELx_TCF_SYNC);
 	isb();
 
 	local_flush_tlb_all();
