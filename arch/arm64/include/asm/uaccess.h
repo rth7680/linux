@@ -75,7 +75,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	asm volatile(
 	// A + B <= C + 1 for all A,B,C, in four easy steps:
 	// 1: X = A + B; X' = X % 2^64
-	"	adds	%[addr], %[addr], %[size]\n"
+	"	adds	%[addr], %[addr_in], %[size]\n"
 	// 2: Set C = 0 if X > 2^64, to guarantee X' > C in step 4
 	"	csel	%[limit], xzr, %[limit], hi\n"
 	// 3: Set X' = ~0 if X >= 2^64. For X == 2^64, this decrements X'
@@ -88,7 +88,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	"	sbcs	xzr, %[addr], %[limit]\n"
 	"       cset    %[addr], ls\n"
 	: [addr] "=&r" (ret), [limit] "+r" (limit)
-	: [size] "Ir" (size), "0" (addr)
+	: [size] "Ir" (size), [addr_in] "r" (addr)
 	: "cc");
 
 	return ret;
