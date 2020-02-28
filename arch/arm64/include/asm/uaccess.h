@@ -22,6 +22,7 @@
 #include <asm/ptrace.h>
 #include <asm/memory.h>
 #include <asm/extable.h>
+#include <asm/ccset.h>
 
 #define get_fs()	(current_thread_info()->addr_limit)
 
@@ -86,10 +87,10 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	//    comes from the carry in being clear. Otherwise, we are
 	//    testing X' - C == 0, subject to the previous adjustments.
 	"	sbcs	xzr, %[addr], %[limit]\n"
-	"       cset    %[addr], ls\n"
-	: [addr] "=&r" (ret), [limit] "+r" (limit)
+		CC_SET(ls)
+	: [addr] "=&r" (addr), [limit] "+r" (limit), CC_OUT(ls) (ret)
 	: [size] "Ir" (size), [addr_in] "r" (addr)
-	: "cc");
+	: CC_CLOBBER);
 
 	return ret;
 }
