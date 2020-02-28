@@ -6,6 +6,7 @@
 
 #include <linux/random.h>
 #include <asm/cpufeature.h>
+#include <asm/ccset.h>
 
 static inline bool __arm64_rndr(unsigned long *v)
 {
@@ -17,10 +18,10 @@ static inline bool __arm64_rndr(unsigned long *v)
 	 */
 	asm volatile(
 		__mrs_s("%0", SYS_RNDR_EL0) "\n"
-	"	cset %w1, ne\n"
-	: "=r" (*v), "=r" (ok)
+		CC_SET(ne)
+	: "=r" (*v), CC_OUT(ne) (ok)
 	:
-	: "cc");
+	: CC_CLOBBER);
 
 	return ok;
 }
