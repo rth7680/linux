@@ -22,6 +22,7 @@
 #include <asm/ptrace.h>
 #include <asm/memory.h>
 #include <asm/extable.h>
+#include <asm/ccset.h>
 
 #define get_fs()	(current_thread_info()->addr_limit)
 
@@ -42,11 +43,14 @@ static inline void set_fs(mm_segment_t fs)
 	 * Enable/disable UAO so that copy_to_user() etc can access
 	 * kernel memory with the unprivileged instructions.
 	 */
-	if (IS_ENABLED(CONFIG_ARM64_UAO) && fs == KERNEL_DS)
-		asm(ALTERNATIVE("nop", SET_PSTATE_UAO(1), ARM64_HAS_UAO));
-	else
-		asm(ALTERNATIVE("nop", SET_PSTATE_UAO(0), ARM64_HAS_UAO,
-				CONFIG_ARM64_UAO));
+	if (IS_ENABLED(CONFIG_ARM64_UAO)) {
+		if (fs == KERNEL_DS)
+			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(1),
+					ARM64_HAS_UAO));
+		else
+			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(0),
+					ARM64_HAS_UAO));
+	}
 }
 
 #define segment_eq(a, b)	((a) == (b))
@@ -75,19 +79,21 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	asm volatile(
 	// A + B <= C + 1 for all A,B,C, in four easy steps:
 	// 1: X = A + B; X' = X % 2^64
-	"	adds	%0, %3, %2\n"
+	"	adds	%[addr], %[addr_in], %[size]\n"
 	// 2: Set C = 0 if X > 2^64, to guarantee X' > C in step 4
-	"	csel	%1, xzr, %1, hi\n"
+	"	csel	%[limit], xzr, %[limit], hi\n"
 	// 3: Set X' = ~0 if X >= 2^64. For X == 2^64, this decrements X'
 	//    to compensate for the carry flag being set in step 4. For
 	//    X > 2^64, X' merely has to remain nonzero, which it does.
-	"	csinv	%0, %0, xzr, cc\n"
+	"	csinv	%[addr], %[addr], xzr, cc\n"
 	// 4: For X < 2^64, this gives us X' - C - 1 <= 0, where the -1
 	//    comes from the carry in being clear. Otherwise, we are
 	//    testing X' - C == 0, subject to the previous adjustments.
-	"	sbcs	xzr, %0, %1\n"
-	"	cset	%0, ls\n"
-	: "=&r" (ret), "+r" (limit) : "Ir" (size), "0" (addr) : "cc");
+	"	sbcs	xzr, %[addr], %[limit]\n"
+		CC_SET(ls)
+	: [addr] "=&r" (addr), [limit] "+r" (limit), CC_OUT(ls) (ret)
+	: [size] "Ir" (size), [addr_in] "r" (addr)
+	: CC_CLOBBER);
 
 	return ret;
 }
@@ -175,28 +181,26 @@ static inline bool uaccess_ttbr0_enable(void)
 
 static inline void __uaccess_disable_hw_pan(void)
 {
-	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN,
-			CONFIG_ARM64_PAN));
+	if (IS_ENABLED(CONFIG_ARM64_PAN))
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN));
 }
 
 static inline void __uaccess_enable_hw_pan(void)
 {
-	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
-			CONFIG_ARM64_PAN));
+	if (IS_ENABLED(CONFIG_ARM64_PAN))
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN));
 }
 
 #define __uaccess_disable(alt)						\
 do {									\
-	if (!uaccess_ttbr0_disable())					\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), alt,		\
-				CONFIG_ARM64_PAN));			\
+	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_disable())	\
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), alt));	\
 } while (0)
 
 #define __uaccess_enable(alt)						\
 do {									\
-	if (!uaccess_ttbr0_enable())					\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), alt,		\
-				CONFIG_ARM64_PAN));			\
+	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_enable())	\
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), alt));	\
 } while (0)
 
 static inline void uaccess_disable(void)
