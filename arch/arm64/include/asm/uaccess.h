@@ -60,7 +60,8 @@ static inline void set_fs(mm_segment_t fs)
  */
 static inline unsigned long __range_ok(const void __user *addr, unsigned long size)
 {
-	unsigned long ret, limit = current_thread_info()->addr_limit;
+	unsigned long limit = current_thread_info()->addr_limit;
+	unsigned long iaddr = (unsigned long)addr;
 
 	/*
 	 * Asynchronous I/O running in a kernel thread does not have the
@@ -72,24 +73,17 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 		addr = untagged_addr(addr);
 
 	__chk_user_ptr(addr);
-	asm volatile(
-	// A + B <= C + 1 for all A,B,C, in four easy steps:
-	// 1: X = A + B; X' = X % 2^64
-	"	adds	%0, %3, %2\n"
-	// 2: Set C = 0 if X > 2^64, to guarantee X' > C in step 4
-	"	csel	%1, xzr, %1, hi\n"
-	// 3: Set X' = ~0 if X >= 2^64. For X == 2^64, this decrements X'
-	//    to compensate for the carry flag being set in step 4. For
-	//    X > 2^64, X' merely has to remain nonzero, which it does.
-	"	csinv	%0, %0, xzr, cc\n"
-	// 4: For X < 2^64, this gives us X' - C - 1 <= 0, where the -1
-	//    comes from the carry in being clear. Otherwise, we are
-	//    testing X' - C == 0, subject to the previous adjustments.
-	"	sbcs	xzr, %0, %1\n"
-	"	cset	%0, ls\n"
-	: "=&r" (ret), "+r" (limit) : "Ir" (size), "0" (addr) : "cc");
 
-	return ret;
+	/*
+	 * The minimum value for limit is USER_DS, and quite a lot of
+	 * range checks use sizeof(some_type).  With both constants,
+	 * we can rearrange the computation to avoid the need for
+	 * 65-bit arithmetic.
+	 */
+	if (__builtin_constant_p(size) && size > 0 && size < USER_DS)
+		return iaddr <= limit + 1 - size;
+
+	return (__uint128_t)iaddr + size <= (__uint128_t)limit + 1;
 }
 
 #define access_ok(addr, size)	__range_ok(addr, size)
