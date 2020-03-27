@@ -2502,6 +2502,13 @@ fail:
 	return NULL;
 }
 
+#ifndef arch_calc_vmalloc_prot_bits
+static inline pgprot_t arch_calc_vmalloc_prot_bits(pgprot_t prot)
+{
+	return prot;
+}
+#endif
+
 /**
  * __vmalloc_node_range - allocate virtually contiguous memory
  * @size:		  allocation size
@@ -2528,6 +2535,8 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	struct vm_struct *area;
 	void *addr;
 	unsigned long real_size = size;
+
+	prot = arch_calc_vmalloc_prot_bits(prot);
 
 	size = PAGE_ALIGN(size);
 	if (!size || (size >> PAGE_SHIFT) > totalram_pages())
