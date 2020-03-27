@@ -30,18 +30,18 @@
 #define __TLBI_0(op, arg) do {					\
 	asm("tlbi " #op : : );					\
 	if (IS_ENABLED(CONFIG_ARM64_WORKAROUND_REPEAT_TLBI))	\
-		asm (ALTERNATIVE("nop\n		nop",		\
-				 "dsb ish\n	tlbi " #op,	\
-				 ARM64_WORKAROUND_REPEAT_TLBI)	\
+		asm (ALTERNATIVE2("nop\n		nop",	\
+				  "dsb ish\n	tlbi " #op,	\
+				  ARM64_WORKAROUND_REPEAT_TLBI)	\
 		     : : );					\
 } while (0)
 
 #define __TLBI_1(op, arg) do {						\
 	asm ("tlbi " #op ", %0" : : "r" (arg));				\
 	if (IS_ENABLED(CONFIG_ARM64_WORKAROUND_REPEAT_TLBI))		\
-		asm(ALTERNATIVE("nop\n		nop",			\
-				"dsb ish\n	tlbi " #op ", %0",	\
-				ARM64_WORKAROUND_REPEAT_TLBI)		\
+		asm(ALTERNATIVE2("nop\n		nop",			\
+				 "dsb ish\n	tlbi " #op ", %0",	\
+				 ARM64_WORKAROUND_REPEAT_TLBI)		\
 		    : : "r" (arg));					\
 } while (0)
 

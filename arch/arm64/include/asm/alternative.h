@@ -119,6 +119,10 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 #define ALTERNATIVE1(oldinstr, newinstr, feature) \
 	__ALTERNATIVE_N(oldinstr, newinstr, feature, AARCH64_INSN_SIZE)
 
+/* We need "8", not 2*AARCH64_INSN_SIZE -> "2*4". */
+#define ALTERNATIVE2(oldinstr, newinstr, feature) \
+	__ALTERNATIVE_N(oldinstr, newinstr, feature, 8)
+
 #define ALTERNATIVE_CB(oldinstr, cb) \
 	__ALTERNATIVE_CB(oldinstr, ARM64_CB_PATCH, cb)
 
