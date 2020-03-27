@@ -42,11 +42,14 @@ static inline void set_fs(mm_segment_t fs)
 	 * Enable/disable UAO so that copy_to_user() etc can access
 	 * kernel memory with the unprivileged instructions.
 	 */
-	if (IS_ENABLED(CONFIG_ARM64_UAO) && fs == KERNEL_DS)
-		asm(ALTERNATIVE("nop", SET_PSTATE_UAO(1), ARM64_HAS_UAO));
-	else
-		asm(ALTERNATIVE("nop", SET_PSTATE_UAO(0), ARM64_HAS_UAO,
-				CONFIG_ARM64_UAO));
+	if (IS_ENABLED(CONFIG_ARM64_UAO)) {
+		if (fs == KERNEL_DS)
+			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(1),
+					ARM64_HAS_UAO));
+		else
+			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(0),
+					ARM64_HAS_UAO));
+	}
 }
 
 #define segment_eq(a, b)	((a) == (b))
@@ -175,28 +178,26 @@ static inline bool uaccess_ttbr0_enable(void)
 
 static inline void __uaccess_disable_hw_pan(void)
 {
-	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN,
-			CONFIG_ARM64_PAN));
+	if (IS_ENABLED(CONFIG_ARM64_PAN))
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN));
 }
 
 static inline void __uaccess_enable_hw_pan(void)
 {
-	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
-			CONFIG_ARM64_PAN));
+	if (IS_ENABLED(CONFIG_ARM64_PAN))
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN));
 }
 
 #define __uaccess_disable(alt)						\
 do {									\
-	if (!uaccess_ttbr0_disable())					\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), alt,		\
-				CONFIG_ARM64_PAN));			\
+	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_disable())	\
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), alt));	\
 } while (0)
 
 #define __uaccess_enable(alt)						\
 do {									\
-	if (!uaccess_ttbr0_enable())					\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), alt,		\
-				CONFIG_ARM64_PAN));			\
+	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_enable())	\
+		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), alt));	\
 } while (0)
 
 static inline void uaccess_disable(void)
