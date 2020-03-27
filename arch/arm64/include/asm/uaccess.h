@@ -44,11 +44,11 @@ static inline void set_fs(mm_segment_t fs)
 	 */
 	if (IS_ENABLED(CONFIG_ARM64_UAO)) {
 		if (fs == KERNEL_DS)
-			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(1),
-					ARM64_HAS_UAO));
+			asm(ALTERNATIVE1("nop", SET_PSTATE_UAO(1),
+					 ARM64_HAS_UAO));
 		else
-			asm(ALTERNATIVE("nop", SET_PSTATE_UAO(0),
-					ARM64_HAS_UAO));
+			asm(ALTERNATIVE1("nop", SET_PSTATE_UAO(0),
+					 ARM64_HAS_UAO));
 	}
 }
 
@@ -179,25 +179,25 @@ static inline bool uaccess_ttbr0_enable(void)
 static inline void __uaccess_disable_hw_pan(void)
 {
 	if (IS_ENABLED(CONFIG_ARM64_PAN))
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN));
+		asm(ALTERNATIVE1("nop", SET_PSTATE_PAN(0), ARM64_HAS_PAN));
 }
 
 static inline void __uaccess_enable_hw_pan(void)
 {
 	if (IS_ENABLED(CONFIG_ARM64_PAN))
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN));
+		asm(ALTERNATIVE1("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN));
 }
 
 #define __uaccess_disable(alt)						\
 do {									\
 	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_disable())	\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), alt));	\
+		asm(ALTERNATIVE1("nop", SET_PSTATE_PAN(1), alt));	\
 } while (0)
 
 #define __uaccess_enable(alt)						\
 do {									\
 	if (IS_ENABLED(CONFIG_ARM64_PAN) && !uaccess_ttbr0_enable())	\
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(0), alt));	\
+		asm(ALTERNATIVE1("nop", SET_PSTATE_PAN(0), alt));	\
 } while (0)
 
 static inline void uaccess_disable(void)
@@ -255,8 +255,8 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
  */
 #define __get_user_asm(instr, alt_instr, reg, x, addr, err, feature)	\
 	asm volatile(							\
-	"1:"ALTERNATIVE(instr "     " reg "1, [%2]\n",			\
-			alt_instr " " reg "1, [%2]\n", feature)		\
+	"1:"ALTERNATIVE1(instr "     " reg "1, [%2]\n",			\
+			 alt_instr " " reg "1, [%2]\n", feature)	\
 	"2:\n"								\
 	"	.section .fixup, \"ax\"\n"				\
 	"	.align	2\n"						\
@@ -320,8 +320,8 @@ do {									\
 
 #define __put_user_asm(instr, alt_instr, reg, x, addr, err, feature)	\
 	asm volatile(							\
-	"1:"ALTERNATIVE(instr "     " reg "1, [%2]\n",			\
-			alt_instr " " reg "1, [%2]\n", feature)		\
+	"1:"ALTERNATIVE1(instr "     " reg "1, [%2]\n",			\
+			 alt_instr " " reg "1, [%2]\n", feature)	\
 	"2:\n"								\
 	"	.section .fixup,\"ax\"\n"				\
 	"	.align	2\n"						\

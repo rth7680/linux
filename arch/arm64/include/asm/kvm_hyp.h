@@ -18,9 +18,9 @@
 #define read_sysreg_elx(r,nvh,vh)					\
 	({								\
 		u64 reg;						\
-		asm volatile(ALTERNATIVE(__mrs_s("%0", r##nvh),	\
-					 __mrs_s("%0", r##vh),		\
-					 ARM64_HAS_VIRT_HOST_EXTN)	\
+		asm volatile(ALTERNATIVE1(__mrs_s("%0", r##nvh),	\
+					  __mrs_s("%0", r##vh),		\
+					  ARM64_HAS_VIRT_HOST_EXTN)	\
 			     : "=r" (reg));				\
 		reg;							\
 	})
@@ -28,10 +28,10 @@
 #define write_sysreg_elx(v,r,nvh,vh)					\
 	do {								\
 		u64 __val = (u64)(v);					\
-		asm volatile(ALTERNATIVE(__msr_s(r##nvh, "%x0"),	\
-					 __msr_s(r##vh, "%x0"),		\
-					 ARM64_HAS_VIRT_HOST_EXTN)	\
-					 : : "rZ" (__val));		\
+		asm volatile(ALTERNATIVE1(__msr_s(r##nvh, "%x0"),	\
+					  __msr_s(r##vh, "%x0"),	\
+					  ARM64_HAS_VIRT_HOST_EXTN)	\
+			     : : "rZ" (__val));				\
 	} while (0)
 
 /*
@@ -102,7 +102,7 @@ static __always_inline void __hyp_text __load_guest_stage2(struct kvm *kvm)
 	 * above before we can switch to the EL1/EL0 translation regime used by
 	 * the guest.
 	 */
-	asm(ALTERNATIVE("nop", "isb", ARM64_WORKAROUND_SPECULATIVE_AT_VHE));
+	asm(ALTERNATIVE1("nop", "isb", ARM64_WORKAROUND_SPECULATIVE_AT_VHE));
 }
 
 #endif /* __ARM64_KVM_HYP_H__ */

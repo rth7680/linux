@@ -34,7 +34,7 @@ static inline void arch_local_irq_enable(void)
 		WARN_ON_ONCE(pmr != GIC_PRIO_IRQON && pmr != GIC_PRIO_IRQOFF);
 	}
 
-	asm volatile(ALTERNATIVE(
+	asm volatile(ALTERNATIVE1(
 		"msr	daifclr, #2		// arch_local_irq_enable",
 		__msr_s(SYS_ICC_PMR_EL1, "%0"),
 		ARM64_HAS_IRQ_PRIO_MASKING)
@@ -53,7 +53,7 @@ static inline void arch_local_irq_disable(void)
 		WARN_ON_ONCE(pmr != GIC_PRIO_IRQON && pmr != GIC_PRIO_IRQOFF);
 	}
 
-	asm volatile(ALTERNATIVE(
+	asm volatile(ALTERNATIVE1(
 		"msr	daifset, #2		// arch_local_irq_disable",
 		__msr_s(SYS_ICC_PMR_EL1, "%0"),
 		ARM64_HAS_IRQ_PRIO_MASKING)
@@ -69,7 +69,7 @@ static inline unsigned long arch_local_save_flags(void)
 {
 	unsigned long flags;
 
-	asm volatile(ALTERNATIVE(
+	asm volatile(ALTERNATIVE1(
 		"mrs	%0, daif",
 		__mrs_s("%0", SYS_ICC_PMR_EL1),
 		ARM64_HAS_IRQ_PRIO_MASKING)
@@ -84,7 +84,7 @@ static inline int arch_irqs_disabled_flags(unsigned long flags)
 {
 	int res;
 
-	asm volatile(ALTERNATIVE(
+	asm volatile(ALTERNATIVE1(
 		"and	%w0, %w1, #" __stringify(PSR_I_BIT),
 		"eor	%w0, %w1, #" __stringify(GIC_PRIO_IRQON),
 		ARM64_HAS_IRQ_PRIO_MASKING)
@@ -116,7 +116,7 @@ static inline unsigned long arch_local_irq_save(void)
  */
 static inline void arch_local_irq_restore(unsigned long flags)
 {
-	asm volatile(ALTERNATIVE(
+	asm volatile(ALTERNATIVE1(
 		"msr	daif, %0",
 		__msr_s(SYS_ICC_PMR_EL1, "%0"),
 		ARM64_HAS_IRQ_PRIO_MASKING)

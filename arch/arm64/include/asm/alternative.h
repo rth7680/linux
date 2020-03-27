@@ -80,6 +80,26 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 	".org	. - (664b-663b) + (662b-661b)\n\t"			\
 	".org	. - (662b-661b) + (664b-663b)\n"
 
+/*
+ * Similar, but for known lengths.  The individual replacements
+ * can be merged by the linker.
+ */
+#define __ALTERNATIVE_N(oldinstr, newinstr, feature, len)		\
+	"661:\n\t"							\
+	oldinstr "\n"							\
+	"662:\n"							\
+	".pushsection .altinstructions,\"a\"\n"				\
+	ALTINSTR_ENTRY(feature)						\
+	".popsection\n"							\
+	".pushsection .altinstr_replacement." __stringify(len)		\
+		", \"aM\", @progbits, " __stringify(len) "\n"		\
+	"663:\n\t"							\
+	newinstr "\n"							\
+	"664:\n\t"							\
+	".popsection\n\t"						\
+	".org	. - (664b-663b) + " __stringify(len) "\n\t"		\
+	".org	. - (662b-661b) + " __stringify(len) "\n"
+
 #define __ALTERNATIVE_CB(oldinstr, feature, cb)				\
 	"661:\n\t"							\
 	oldinstr "\n"							\
@@ -95,6 +115,9 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
  */
 #define ALTERNATIVE(oldinstr, newinstr, feature) \
 	__ALTERNATIVE(oldinstr, newinstr, feature)
+
+#define ALTERNATIVE1(oldinstr, newinstr, feature) \
+	__ALTERNATIVE_N(oldinstr, newinstr, feature, AARCH64_INSN_SIZE)
 
 #define ALTERNATIVE_CB(oldinstr, cb) \
 	__ALTERNATIVE_CB(oldinstr, ARM64_CB_PATCH, cb)
