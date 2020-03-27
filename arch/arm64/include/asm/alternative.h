@@ -65,8 +65,7 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
  *
  * Alternatives with callbacks do not generate replacement instructions.
  */
-#define __ALTERNATIVE_CFG(oldinstr, newinstr, feature, cfg_enabled)	\
-	".if "__stringify(cfg_enabled)" == 1\n"				\
+#define __ALTERNATIVE(oldinstr, newinstr, feature)			\
 	"661:\n\t"							\
 	oldinstr "\n"							\
 	"662:\n"							\
@@ -79,11 +78,9 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 	"664:\n\t"							\
 	".popsection\n\t"						\
 	".org	. - (664b-663b) + (662b-661b)\n\t"			\
-	".org	. - (662b-661b) + (664b-663b)\n"			\
-	".endif\n"
+	".org	. - (662b-661b) + (664b-663b)\n"
 
-#define __ALTERNATIVE_CFG_CB(oldinstr, feature, cfg_enabled, cb)	\
-	".if "__stringify(cfg_enabled)" == 1\n"				\
+#define __ALTERNATIVE_CB(oldinstr, feature, cb)				\
 	"661:\n\t"							\
 	oldinstr "\n"							\
 	"662:\n"							\
@@ -91,14 +88,17 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 	ALTINSTR_ENTRY_CB(feature, cb)					\
 	".popsection\n"							\
 	"663:\n\t"							\
-	"664:\n\t"							\
-	".endif\n"
+	"664:\n\t"
 
-#define _ALTERNATIVE_CFG(oldinstr, newinstr, feature, cfg, ...)	\
-	__ALTERNATIVE_CFG(oldinstr, newinstr, feature, IS_ENABLED(cfg))
+/*
+ * Usage: asm(ALTERNATIVE(oldinstr, newinstr, feature));
+ */
+#define ALTERNATIVE(oldinstr, newinstr, feature) \
+	__ALTERNATIVE(oldinstr, newinstr, feature)
 
 #define ALTERNATIVE_CB(oldinstr, cb) \
-	__ALTERNATIVE_CFG_CB(oldinstr, ARM64_CB_PATCH, 1, cb)
+	__ALTERNATIVE_CB(oldinstr, ARM64_CB_PATCH, cb)
+
 #else
 
 #include <asm/assembler.h>
@@ -216,9 +216,6 @@ alternative_else
 alternative_endif
 .endm
 
-#define _ALTERNATIVE_CFG(insn1, insn2, cap, cfg, ...)	\
-	alternative_insn insn1, insn2, cap, IS_ENABLED(cfg)
-
 .macro user_alt, label, oldinstr, newinstr, cond
 9999:	alternative_insn "\oldinstr", "\newinstr", \cond
 	_ASM_EXTABLE 9999b, \label
@@ -284,15 +281,4 @@ alternative_endif
 #endif
 
 #endif  /*  __ASSEMBLY__  */
-
-/*
- * Usage: asm(ALTERNATIVE(oldinstr, newinstr, feature));
- *
- * Usage: asm(ALTERNATIVE(oldinstr, newinstr, feature, CONFIG_FOO));
- * N.B. If CONFIG_FOO is specified, but not selected, the whole block
- *      will be omitted, including oldinstr.
- */
-#define ALTERNATIVE(oldinstr, newinstr, ...)   \
-	_ALTERNATIVE_CFG(oldinstr, newinstr, __VA_ARGS__, 1)
-
 #endif /* __ASM_ALTERNATIVE_H */
