@@ -214,3 +214,30 @@ void kasan_unpoison_slab(const void * ptr)
 {
 	ptr = kasan_init_mem_tag(ptr, __ksize(ptr));
 }
+
+void kasan_alloc_pages(struct page *page, unsigned int order)
+{
+	void *__page;
+	u8 tag = random_tag();
+
+	if (unlikely(PageHighMem(page)))
+		return;
+
+	__page = kasan_update_mem_tag(page_address(page),
+				      PAGE_SIZE << order,
+				      tag);
+
+	(void)__page;
+}
+
+void kasan_free_pages(struct page *page, unsigned int order)
+{
+	void *__page;
+
+	if (likely(!PageHighMem(page)))
+		__page = kasan_update_mem_tag(page_address(page),
+					      PAGE_SIZE << order,
+					      KASAN_FREE_PAGE);
+
+	(void)__page;
+}
