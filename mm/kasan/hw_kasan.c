@@ -257,3 +257,16 @@ void kasan_free_pages(struct page *page, unsigned int order)
 
 	(void)__page;
 }
+
+/*
+ * Unpoison the entire stack for a task.
+ * Required by init_idle()
+ */
+void kasan_unpoison_task_stack(struct task_struct *task)
+{
+	void *sp = task_stack_page(task) + THREAD_SIZE;
+	void *base = task_stack_page(task);
+	size_t size = sp - base;
+
+	kasan_unpoison_shadow(base, size);
+}

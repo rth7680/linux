@@ -132,6 +132,8 @@ void kasan_unpoison_slab(const void * ptr);
 void kasan_alloc_pages(struct page *page, unsigned int order);
 void kasan_free_pages(struct page *page, unsigned int order);
 
+void kasan_unpoison_task_stack(struct task_struct *task);
+
 #else /* CONFIG_KASAN_HW_TAGS */
 
 static inline void kasan_unpoison_shadow(const void *address, size_t size) {}
@@ -184,9 +186,9 @@ static inline void kasan_unpoison_slab(const void *ptr) { }
 static inline void kasan_alloc_pages(struct page *page, unsigned int order) {}
 static inline void kasan_free_pages(struct page *page, unsigned int order) {}
 
-#endif /* CONFIG_KASAN_HW_TAGS */
-
 static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
+
+#endif /* CONFIG_KASAN_HW_TAGS */
 
 static inline void kasan_enable_current(void) {}
 static inline void kasan_disable_current(void) {}
