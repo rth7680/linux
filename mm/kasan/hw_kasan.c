@@ -270,3 +270,79 @@ void kasan_unpoison_task_stack(struct task_struct *task)
 
 	kasan_unpoison_shadow(base, size);
 }
+
+#ifdef CONFIG_KASAN_VMALLOC
+int kasan_populate_vmalloc(unsigned long addr, unsigned long size)
+{
+	void *__addr;
+
+	if (!is_vmalloc_or_module_addr((void *)addr))
+		return 0;
+
+	__addr = kasan_update_mem_tag((void *)addr, size,
+				      KASAN_VMALLOC_INVALID);
+
+	(void)__addr;
+
+	return 0;
+}
+
+void kasan_poison_vmalloc(const void *start, unsigned long size)
+{
+	void *__addr;
+
+	if (!is_vmalloc_or_module_addr(start))
+		return;
+
+	size = round_up(size, KASAN_SHADOW_SCALE_SIZE);
+	__addr = kasan_update_mem_tag(start, size,
+				      KASAN_VMALLOC_INVALID);
+
+	(void)__addr;
+}
+
+void kasan_unpoison_vmalloc(const void *start, unsigned long size)
+{
+	void *__addr;
+	u8 tag = get_tag(start);
+
+	if (!is_vmalloc_or_module_addr(start))
+		return;
+
+	__addr = kasan_update_mem_tag(start, size, tag);
+
+	(void)__addr;
+}
+
+void kasan_release_vmalloc(unsigned long start, unsigned long end,
+			   unsigned long free_region_start,
+			   unsigned long free_region_end)
+{
+	/*
+	 * Note: The tags are initialized to KASAN_VMALLOC_INVALID by
+	 * kasan_populate_vmalloc().
+	 */
+}
+#else
+int kasan_module_alloc(void *addr, size_t size)
+{
+	if (WARN_ON(!PAGE_ALIGNED(addr)))
+		return -EINVAL;
+
+	addr = kasan_update_mem_tag(addr, size, KASAN_TAG_KERNEL);
+	find_vm_area(addr)->flags |= VM_KASAN;
+
+	return 0;
+}
+
+void kasan_free_shadow(const struct vm_struct *vm)
+{
+	void *_addr;
+
+	if (vm->flags & VM_KASAN)
+		_addr = kasan_update_mem_tag(vm->addr, vm->size,
+					     KASAN_TAG_INVALID);
+
+	(void)_addr;
+}
+#endif

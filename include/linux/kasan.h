@@ -134,6 +134,14 @@ void kasan_free_pages(struct page *page, unsigned int order);
 
 void kasan_unpoison_task_stack(struct task_struct *task);
 
+#ifndef CONFIG_KASAN_VMALLOC
+int kasan_module_alloc(void *addr, size_t size);
+void kasan_free_shadow(const struct vm_struct *vm);
+#else
+static inline int kasan_module_alloc(void *addr, size_t size) { return 0; }
+static inline void kasan_free_shadow(const struct vm_struct *vm) {}
+#endif
+
 #else /* CONFIG_KASAN_HW_TAGS */
 
 static inline void kasan_unpoison_shadow(const void *address, size_t size) {}
@@ -188,13 +196,13 @@ static inline void kasan_free_pages(struct page *page, unsigned int order) {}
 
 static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
 
+static inline int kasan_module_alloc(void *addr, size_t size) { return 0; }
+static inline void kasan_free_shadow(const struct vm_struct *vm) {}
+
 #endif /* CONFIG_KASAN_HW_TAGS */
 
 static inline void kasan_enable_current(void) {}
 static inline void kasan_disable_current(void) {}
-
-static inline int kasan_module_alloc(void *addr, size_t size) { return 0; }
-static inline void kasan_free_shadow(const struct vm_struct *vm) {}
 
 static inline size_t kasan_metadata_size(struct kmem_cache *cache) { return 0; }
 
