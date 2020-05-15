@@ -233,6 +233,8 @@ static inline unsigned long kaslr_offset(void)
 		mte_random_tag(valid_tags)
 #define arch_init_tags(max_tags) \
 		mte_init_tags(max_tags)
+#define arch_is_hw_tags_enabled() \
+		system_supports_mte()
 #endif /* CONFIG_KASAN_HW_TAGS */
 
 static inline const void *__tag_set(const void *addr, u8 tag)
