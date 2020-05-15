@@ -1665,13 +1665,14 @@ static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
 {
 	u64 mair;
 
-	/* all non-zero tags excluded by default */
-	write_sysreg_s(SYS_GCR_EL1_RRND | SYS_GCR_EL1_EXCL_MASK, SYS_GCR_EL1);
 	write_sysreg_s(0, SYS_TFSR_EL1);
 	write_sysreg_s(0, SYS_TFSRE0_EL1);
 
 	/* Enable Match-All at EL1 */
 	sysreg_clear_set(tcr_el1, 0, SYS_TCR_EL1_TCMA1);
+
+	/* Enable the kernel exclude mask for random tags generation */
+	write_sysreg_s((SYS_GCR_EL1_RRND | gcr_kernel_excl), SYS_GCR_EL1);
 
 	/*
 	 * CnP must be enabled only after the MAIR_EL1 register has been set

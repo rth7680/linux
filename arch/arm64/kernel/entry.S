@@ -172,6 +172,29 @@ alternative_else_nop_endif
 #endif
 	.endm
 
+	/* Note: tmp should always be a callee-saved register */
+	.macro mte_restore_gcr, el, tsk, tmp, tmp2
+#ifdef CONFIG_ARM64_MTE
+alternative_if_not ARM64_MTE
+	b	1f
+alternative_else_nop_endif
+	.if	\el == 0
+	ldr	\tmp, [\tsk, #THREAD_GCR_EL1_USER]
+	.else
+	ldr_l	\tmp, gcr_kernel_excl
+	.endif
+	/*
+	 * Calculate and set the exclude mask preserving
+	 * the RRND (bit[16]) setting.
+	 */
+	mrs_s	\tmp2, SYS_GCR_EL1
+	bfi	\tmp2, \tmp, #0, #16
+	msr_s	SYS_GCR_EL1, \tmp2
+	isb
+1:
+#endif
+	.endm
+
 	.macro	kernel_entry, el, regsize = 64
 	.if	\regsize == 32
 	mov	w0, w0				// zero upper 32 bits of x0
@@ -208,6 +231,8 @@ alternative_else_nop_endif
 	apply_ssbd 1, x22, x23
 
 	ptrauth_keys_install_kernel tsk, x20, x22, x23
+
+	mte_restore_gcr 1, tsk, x22, x23
 
 	scs_load tsk, x20
 	.else
@@ -385,6 +410,8 @@ alternative_else_nop_endif
 
 	/* No kernel C function calls after this as user keys are set. */
 	ptrauth_keys_install_user tsk, x0, x1, x2
+
+	mte_restore_gcr 0, tsk, x0, x1
 
 	apply_ssbd 0, x0, x1
 	.endif
@@ -957,6 +984,7 @@ SYM_FUNC_START(cpu_switch_to)
 	mov	sp, x9
 	msr	sp_el0, x1
 	ptrauth_keys_install_kernel x1, x8, x9, x10
+	mte_restore_gcr 1, x1, x8, x9
 	scs_save x0, x8
 	scs_load x1, x8
 	ret

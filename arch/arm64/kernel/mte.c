@@ -20,9 +20,12 @@
 #include <asm/barrier.h>
 #include <asm/cpufeature.h>
 #include <asm/kasan.h>
+#include <asm/kprobes.h>
 #include <asm/mte.h>
 #include <asm/ptrace.h>
 #include <asm/sysreg.h>
+
+u64 gcr_kernel_excl __read_mostly;
 
 /* panic_on_mte_fault off by default */
 int panic_on_mte_fault __read_mostly;
@@ -134,6 +137,13 @@ u8 mte_random_tag(void)
 	return (u8)tag;
 }
 
+void mte_init_tags(u64 max_tags)
+{
+	u64 incl = ((1ULL << ((max_tags & MTE_TAG_MAX) + 1)) - 1);
+
+	gcr_kernel_excl = ~incl & SYS_GCR_EL1_EXCL_MASK;
+}
+
 static void update_sctlr_el1_tcf0(u64 tcf0)
 {
 	/* ISB required for the kernel uaccess routines */
@@ -169,7 +179,11 @@ static void update_gcr_el1_excl(u64 excl)
 static void set_gcr_el1_excl(u64 excl)
 {
 	current->thread.gcr_user_excl = excl;
-	update_gcr_el1_excl(excl);
+
+	/*
+	 * SYS_GCR_EL1 will be set to current->thread.gcr_user_incl value
+	 * by mte_restore_gcr() in kernel_exit,
+	 */
 }
 
 void flush_mte_state(void)
@@ -203,7 +217,7 @@ void mte_suspend_exit(void)
 	if (!system_supports_mte())
 		return;
 
-	update_gcr_el1_excl(current->thread.gcr_user_excl);
+	update_gcr_el1_excl(gcr_kernel_excl);
 }
 
 long set_mte_ctrl(struct task_struct *task, unsigned long arg)
