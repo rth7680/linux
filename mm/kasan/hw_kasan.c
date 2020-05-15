@@ -346,3 +346,16 @@ void kasan_free_shadow(const struct vm_struct *vm)
 	(void)_addr;
 }
 #endif
+
+void kasan_enable_current(void)
+{
+}
+
+void kasan_disable_current(void)
+{
+}
+
+size_t kasan_metadata_size(struct kmem_cache *cache)
+{
+	return 0;
+}
