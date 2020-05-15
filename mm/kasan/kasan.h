@@ -126,6 +126,8 @@ struct kasan_alloc_meta *get_alloc_info(struct kmem_cache *cache,
 struct kasan_free_meta *get_free_info(struct kmem_cache *cache,
 					const void *object);
 
+#ifdef CONFIG_KASAN
+
 static inline const void *kasan_shadow_to_mem(const void *shadow_addr)
 {
 	return (void *)(((unsigned long)shadow_addr - KASAN_SHADOW_OFFSET)
@@ -159,6 +161,8 @@ void kasan_report_invalid_free(void *object, unsigned long ip);
 
 struct page *kasan_addr_to_page(const void *addr);
 
+#endif /* CONFIG_KASAN */
+
 #if defined(CONFIG_KASAN_GENERIC) && \
 	(defined(CONFIG_SLAB) || defined(CONFIG_SLUB))
 void quarantine_put(struct kasan_free_meta *info, struct kmem_cache *cache);
@@ -171,7 +175,7 @@ static inline void quarantine_reduce(void) { }
 static inline void quarantine_remove_cache(struct kmem_cache *cache) { }
 #endif
 
-#ifdef CONFIG_KASAN_SW_TAGS
+#if defined(CONFIG_KASAN_SW_TAGS) || defined(CONFIG_KASAN_HW_TAGS)
 
 void print_tags(u8 addr_tag, const void *addr);
 
@@ -200,10 +204,20 @@ static inline const void *arch_kasan_set_tag(const void *addr, u8 tag)
 #ifndef arch_kasan_get_tag
 #define arch_kasan_get_tag(addr)	0
 #endif
+#ifndef arch_set_mem_tag
+#define arch_set_mem_tag(address, size, tag, ignore_tag) \
+		((void *)(address))
+#endif
+#ifndef arch_random_tag
+#define arch_random_tag()		0
+#endif
 
 #define set_tag(addr, tag)	((void *)arch_kasan_set_tag((addr), (tag)))
 #define reset_tag(addr)		((void *)arch_kasan_reset_tag(addr))
 #define get_tag(addr)		arch_kasan_get_tag(addr)
+#define set_mem_tag(address,size,tag,ignore_tag) \
+		arch_set_mem_tag(address, size, tag, ignore_tag)
+#define kasan_random_tag() arch_random_tag()
 
 /*
  * Exported functions for interfaces called from assembly or from generated

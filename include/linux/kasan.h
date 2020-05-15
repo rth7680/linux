@@ -97,15 +97,41 @@ void kasan_restore_multi_shot(bool enabled);
 
 #else /* CONFIG_KASAN */
 
+#ifdef CONFIG_KASAN_HW_TAGS
+
+void kasan_unpoison_shadow(const void *address, size_t size);
+
+void kasan_cache_create(struct kmem_cache *cache,
+			unsigned int *size,
+			slab_flags_t *flags);
+
+void kasan_poison_slab(struct page *page);
+void kasan_unpoison_object_data(struct kmem_cache *cache,
+				void * object);
+void kasan_poison_object_data(struct kmem_cache *cache,
+			      void * object);
+void * __must_check kasan_init_slab_obj(struct kmem_cache *cache,
+					const void * object);
+
+void * __must_check kasan_kmalloc_large(const void * ptr, size_t size,
+					gfp_t flags);
+void kasan_poison_kfree(void * ptr, unsigned long ip);
+void * __must_check kasan_kmalloc(struct kmem_cache *s, const void * object,
+				  size_t size, gfp_t flags);
+void * __must_check kasan_krealloc(const void * object, size_t new_size,
+				   gfp_t flags);
+
+void * __must_check kasan_slab_alloc(struct kmem_cache *s, void * object,
+				     gfp_t flags);
+bool kasan_slab_free(struct kmem_cache *s, void * object,
+		     unsigned long ip);
+
+void kasan_kfree_large(void *ptr, unsigned long ip);
+void kasan_unpoison_slab(const void * ptr);
+
+#else /* CONFIG_KASAN_HW_TAGS */
+
 static inline void kasan_unpoison_shadow(const void *address, size_t size) {}
-
-static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
-
-static inline void kasan_enable_current(void) {}
-static inline void kasan_disable_current(void) {}
-
-static inline void kasan_alloc_pages(struct page *page, unsigned int order) {}
-static inline void kasan_free_pages(struct page *page, unsigned int order) {}
 
 static inline void kasan_cache_create(struct kmem_cache *cache,
 				      unsigned int *size,
@@ -126,7 +152,6 @@ static inline void *kasan_kmalloc_large(void *ptr, size_t size, gfp_t flags)
 {
 	return ptr;
 }
-static inline void kasan_kfree_large(void *ptr, unsigned long ip) {}
 static inline void kasan_poison_kfree(void *ptr, unsigned long ip) {}
 static inline void *kasan_kmalloc(struct kmem_cache *s, const void *object,
 				size_t size, gfp_t flags)
@@ -150,8 +175,23 @@ static inline bool kasan_slab_free(struct kmem_cache *s, void *object,
 	return false;
 }
 
+static inline void kasan_kfree_large(void *ptr, unsigned long ip) {}
+static inline void kasan_unpoison_slab(const void *ptr) { }
+
+#endif /* CONFIG_KASAN_HW_TAGS */
+
+static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
+
+static inline void kasan_enable_current(void) {}
+static inline void kasan_disable_current(void) {}
+
+static inline void kasan_alloc_pages(struct page *page, unsigned int order) {}
+static inline void kasan_free_pages(struct page *page, unsigned int order) {}
+
 static inline int kasan_module_alloc(void *addr, size_t size) { return 0; }
 static inline void kasan_free_shadow(const struct vm_struct *vm) {}
+
+static inline size_t kasan_metadata_size(struct kmem_cache *cache) { return 0; }
 
 static inline int kasan_add_zero_shadow(void *start, unsigned long size)
 {
@@ -161,10 +201,10 @@ static inline void kasan_remove_zero_shadow(void *start,
 					unsigned long size)
 {}
 
-static inline void kasan_unpoison_slab(const void *ptr) { }
-static inline size_t kasan_metadata_size(struct kmem_cache *cache) { return 0; }
-
 #endif /* CONFIG_KASAN */
+
+u8 assign_tag(struct kmem_cache *cache, const void *object,
+	      bool init, bool keep_tag);
 
 #ifdef CONFIG_KASAN_GENERIC
 
