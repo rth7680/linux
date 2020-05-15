@@ -236,7 +236,7 @@ bool kasan_report(unsigned long addr, size_t size,
 
 #elif defined(CONFIG_KASAN_HW_TAGS)
 
-static inline void kasan_init_tags(void) { }
+void kasan_init_tags(void);
 
 void *kasan_reset_tag(const void *addr);
 

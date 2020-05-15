@@ -214,6 +214,9 @@ static inline const void *arch_kasan_set_tag(const void *addr, u8 tag)
 #ifndef arch_is_hw_tags_enabled
 #define arch_is_hw_tags_enabled()	false
 #endif
+#ifndef arch_init_tags
+#define arch_init_tags(max_tags)	0
+#endif
 
 #define set_tag(addr, tag)	((void *)arch_kasan_set_tag((addr), (tag)))
 #define reset_tag(addr)		((void *)arch_kasan_reset_tag(addr))
@@ -223,6 +226,8 @@ static inline const void *arch_kasan_set_tag(const void *addr, u8 tag)
 #define kasan_random_tag() arch_random_tag()
 #define is_hw_tags_enabled() \
 		arch_is_hw_tags_enabled()
+#define init_tags(max_tags) \
+		arch_init_tags(max_tags)
 
 /*
  * Exported functions for interfaces called from assembly or from generated

@@ -7,6 +7,11 @@
 
 #include "kasan.h"
 
+void kasan_init_tags(void)
+{
+	init_tags(KASAN_TAG_MAX);
+}
+
 u8 random_tag(void)
 {
 	return kasan_random_tag();
