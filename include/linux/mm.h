@@ -1395,7 +1395,9 @@ static inline bool cpupid_match_pid(struct task_struct *task, int cpupid)
 }
 #endif /* CONFIG_NUMA_BALANCING */
 
-#ifdef CONFIG_KASAN_SW_TAGS
+#if defined(CONFIG_KASAN_SW_TAGS) || defined(CONFIG_KASAN_HW_TAGS)
+bool kasan_hw_tags_enabled(void);
+
 static inline u8 page_kasan_tag(const struct page *page)
 {
 	return (page->flags >> KASAN_TAG_PGSHIFT) & KASAN_TAG_MASK;
@@ -1403,8 +1405,15 @@ static inline u8 page_kasan_tag(const struct page *page)
 
 static inline void page_kasan_tag_set(struct page *page, u8 tag)
 {
+	u8 __tag = 0xff;
+
+	if (IS_ENABLED(CONFIG_KASAN_SW_TAGS) ||
+		(IS_ENABLED(CONFIG_KASAN_HW_TAGS) &&
+		kasan_hw_tags_enabled()))
+		__tag = tag;
+
 	page->flags &= ~(KASAN_TAG_MASK << KASAN_TAG_PGSHIFT);
-	page->flags |= (tag & KASAN_TAG_MASK) << KASAN_TAG_PGSHIFT;
+	page->flags |= (__tag & KASAN_TAG_MASK) << KASAN_TAG_PGSHIFT;
 }
 
 static inline void page_kasan_tag_reset(struct page *page)

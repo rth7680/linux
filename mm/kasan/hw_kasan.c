@@ -27,6 +27,12 @@
 #include "kasan.h"
 #include "../slab.h"
 
+bool kasan_hw_tags_enabled()
+{
+	return is_hw_tags_enabled();
+}
+EXPORT_SYMBOL_GPL(kasan_hw_tags_enabled);
+
 /*
  * Stores tag in memory for the memory range [addr, addr + size)
  * Memory addresses should be aligned to KASAN_SHADOW_SCALE_SIZE.
@@ -60,9 +66,15 @@ void kasan_cache_create(struct kmem_cache *cache, unsigned int *size,
 
 void kasan_poison_slab(struct page *page)
 {
-	void *__page = kasan_update_mem_tag(page_address(page),
-					    page_size(page),
-					    KASAN_KMALLOC_REDZONE);
+	void *__page;
+	unsigned long i;
+
+	for (i = 0; i < compound_nr(page); i++)
+		page_kasan_tag_reset(page + i);
+
+	__page = kasan_update_mem_tag(page_address(page),
+				      page_size(page),
+				      KASAN_KMALLOC_REDZONE);
 
 	(void)__page;
 }
@@ -218,10 +230,14 @@ void kasan_unpoison_slab(const void * ptr)
 void kasan_alloc_pages(struct page *page, unsigned int order)
 {
 	void *__page;
+	unsigned long i;
 	u8 tag = random_tag();
 
 	if (unlikely(PageHighMem(page)))
 		return;
+
+	for (i = 0; i < (1 << order); i++)
+		page_kasan_tag_set(page + i, tag);
 
 	__page = kasan_update_mem_tag(page_address(page),
 				      PAGE_SIZE << order,
