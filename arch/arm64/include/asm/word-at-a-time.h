@@ -55,6 +55,13 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
 {
 	unsigned long ret, offset;
 
+	/*
+	 * Unaligned loads might cross MTE granule boundaries.
+	 * To avoid potential fault access the memory with matchall tag,
+	 */
+
+	void *utag_addr = __untagged_addr((void *)addr);
+
 	/* Load word from unaligned pointer addr */
 	asm(
 	"1:	ldr	%0, %3\n"
@@ -74,7 +81,7 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
 	"	.popsection\n"
 	_ASM_EXTABLE(1b, 3b)
 	: "=&r" (ret), "=&r" (offset)
-	: "r" (addr), "Q" (*(unsigned long *)addr));
+	: "r" (utag_addr), "Q" (*(unsigned long *)utag_addr));
 
 	return ret;
 }
