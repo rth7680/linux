@@ -3146,6 +3146,14 @@ int build_detached_freelist(struct kmem_cache *s, size_t size,
 		df->s = cache_from_obj(s, object); /* Support for memcg */
 	}
 
+	/*
+	 * With CONFIG_KASAN_HW_TAGS enabled object might be tagged
+	 * at this point.
+	 * Reset the tag before it is added to the free list.
+	 */
+	if(IS_ENABLED(CONFIG_KASAN_HW_TAGS))
+		object = kasan_reset_tag(object);
+
 	/* Start new detached freelist */
 	df->page = page;
 	set_freepointer(df->s, object, NULL);
