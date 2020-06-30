@@ -1171,7 +1171,6 @@ static struct vmap_area *alloc_vmap_area(unsigned long size,
 	struct vmap_area *va, *pva;
 	unsigned long addr;
 	int purged = 0;
-	int ret;
 
 	BUG_ON(!size);
 	BUG_ON(offset_in_page(size));
@@ -1246,12 +1245,6 @@ retry:
 	BUG_ON(!IS_ALIGNED(va->va_start, align));
 	BUG_ON(va->va_start < vstart);
 	BUG_ON(va->va_end > vend);
-
-	ret = kasan_populate_vmalloc(addr, size);
-	if (ret) {
-		free_vmap_area(va);
-		return ERR_PTR(ret);
-	}
 
 	return va;
 
@@ -1453,7 +1446,7 @@ static void free_unmap_vmap_area(struct vmap_area *va)
 	free_vmap_area_noflush(va);
 }
 
-static struct vmap_area *find_vmap_area(unsigned long addr)
+struct vmap_area *find_vmap_area(unsigned long addr)
 {
 	struct vmap_area *va;
 
@@ -2091,7 +2084,6 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 {
 	struct vmap_area *va;
 	struct vm_struct *area;
-	unsigned long requested_size = size;
 
 	BUG_ON(in_interrupt());
 	size = PAGE_ALIGN(size);
@@ -2114,8 +2106,6 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 		kfree(area);
 		return NULL;
 	}
-
-	kasan_unpoison_vmalloc((void *)va->va_start, requested_size);
 
 	setup_vmalloc_vm(area, va, flags, caller);
 
@@ -2535,6 +2525,7 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	struct vm_struct *area;
 	void *addr;
 	unsigned long real_size = size;
+	int ret = 0;
 
 	prot = arch_calc_vmalloc_prot_bits(prot);
 
@@ -2559,6 +2550,12 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	clear_vm_uninitialized_flag(area);
 
 	kmemleak_vmalloc(area, size, gfp_mask);
+
+	ret = kasan_populate_vmalloc((unsigned long)addr, real_size);
+	if (ret)
+		goto fail;
+
+	kasan_unpoison_vmalloc(addr, real_size);
 
 	return addr;
 
@@ -3358,15 +3355,6 @@ retry:
 
 	spin_unlock(&free_vmap_area_lock);
 
-	/* populate the kasan shadow space */
-	for (area = 0; area < nr_vms; area++) {
-		if (kasan_populate_vmalloc(vas[area]->va_start, sizes[area]))
-			goto err_free_shadow;
-
-		kasan_unpoison_vmalloc((void *)vas[area]->va_start,
-				       sizes[area]);
-	}
-
 	/* insert all vm's */
 	spin_lock(&vmap_area_lock);
 	for (area = 0; area < nr_vms; area++) {
@@ -3425,28 +3413,6 @@ err_free:
 		kfree(vms[area]);
 	}
 err_free2:
-	kfree(vas);
-	kfree(vms);
-	return NULL;
-
-err_free_shadow:
-	spin_lock(&free_vmap_area_lock);
-	/*
-	 * We release all the vmalloc shadows, even the ones for regions that
-	 * hadn't been successfully added. This relies on kasan_release_vmalloc
-	 * being able to tolerate this case.
-	 */
-	for (area = 0; area < nr_vms; area++) {
-		orig_start = vas[area]->va_start;
-		orig_end = vas[area]->va_end;
-		va = merge_or_add_vmap_area(vas[area], &free_vmap_area_root,
-					    &free_vmap_area_list);
-		kasan_release_vmalloc(orig_start, orig_end,
-				      va->va_start, va->va_end);
-		vas[area] = NULL;
-		kfree(vms[area]);
-	}
-	spin_unlock(&free_vmap_area_lock);
 	kfree(vas);
 	kfree(vms);
 	return NULL;

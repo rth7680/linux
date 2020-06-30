@@ -217,6 +217,8 @@ extern struct list_head vmap_area_list;
 extern __init void vm_area_add_early(struct vm_struct *vm);
 extern __init void vm_area_register_early(struct vm_struct *vm, size_t align);
 
+struct vmap_area *find_vmap_area(unsigned long addr);
+
 #ifdef CONFIG_SMP
 # ifdef CONFIG_MMU
 struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,

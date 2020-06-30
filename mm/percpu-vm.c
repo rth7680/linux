@@ -276,6 +276,7 @@ static int pcpu_populate_chunk(struct pcpu_chunk *chunk,
 			       int page_start, int page_end, gfp_t gfp)
 {
 	struct page **pages;
+	unsigned long size, off, start, end;
 
 	pages = pcpu_get_pages();
 	if (!pages)
@@ -288,6 +289,19 @@ static int pcpu_populate_chunk(struct pcpu_chunk *chunk,
 		pcpu_free_pages(chunk, pages, page_start, page_end);
 		return -ENOMEM;
 	}
+
+	size = (page_end - page_start) * PAGE_SIZE;
+	off = page_start * PAGE_SIZE;
+	start = (unsigned long)chunk->base_addr + off;
+	end = (unsigned long)chunk->base_addr + off + size;
+
+	if (kasan_populate_vmalloc(start, size)) {
+		struct vmap_area *va = find_vmap_area(start);
+		kasan_release_vmalloc(start, end, va->va_start, va->va_end);
+		return -ENOMEM;
+	}
+
+	kasan_unpoison_vmalloc((void *)start, size);
 	pcpu_post_map_flush(chunk, page_start, page_end);
 
 	return 0;
