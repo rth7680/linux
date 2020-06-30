@@ -272,6 +272,24 @@ void kasan_unpoison_task_stack(struct task_struct *task)
 }
 
 #ifdef CONFIG_KASAN_VMALLOC
+static int kasan_update_page_tag_vmalloc(const void *addr, u8 tag)
+{
+	struct vm_struct *area;
+	int i;
+
+	area = find_vm_area((void *)addr);
+	if (unlikely(!area))
+		return -ENOMEM;
+
+	for (i = 0; i < area->nr_pages; i++) {
+		struct page *page = area->pages[i];
+
+		page_kasan_tag_set(page, tag);
+	}
+
+	return 0;
+}
+
 int kasan_populate_vmalloc(unsigned long addr, unsigned long size)
 {
 	void *__addr;
@@ -284,7 +302,8 @@ int kasan_populate_vmalloc(unsigned long addr, unsigned long size)
 
 	(void)__addr;
 
-	return 0;
+	return kasan_update_page_tag_vmalloc((void *)addr,
+					     KASAN_VMALLOC_INVALID);
 }
 
 void kasan_poison_vmalloc(const void *start, unsigned long size)
@@ -299,6 +318,8 @@ void kasan_poison_vmalloc(const void *start, unsigned long size)
 				      KASAN_VMALLOC_INVALID);
 
 	(void)__addr;
+
+	kasan_update_page_tag_vmalloc(start, KASAN_VMALLOC_INVALID);
 }
 
 void kasan_unpoison_vmalloc(const void *start, unsigned long size)
@@ -312,6 +333,8 @@ void kasan_unpoison_vmalloc(const void *start, unsigned long size)
 	__addr = kasan_update_mem_tag(start, size, tag);
 
 	(void)__addr;
+
+	kasan_update_page_tag_vmalloc(start, tag);
 }
 
 void kasan_release_vmalloc(unsigned long start, unsigned long end,
