@@ -328,17 +328,18 @@ int map_kernel_range(unsigned long start, unsigned long size, pgprot_t prot,
 
 int is_vmalloc_or_module_addr(const void *x)
 {
+	void *__x = kasan_reset_tag(x);
 	/*
 	 * ARM, x86-64 and sparc64 put modules in a special place,
 	 * and fall back on vmalloc() if that fails. Others
 	 * just put it in the vmalloc space.
 	 */
 #if defined(CONFIG_MODULES) && defined(MODULES_VADDR)
-	unsigned long addr = (unsigned long)x;
+	unsigned long addr = (unsigned long)__x;
 	if (addr >= MODULES_VADDR && addr < MODULES_END)
 		return 1;
 #endif
-	return is_vmalloc_addr(x);
+	return is_vmalloc_addr(__x);
 }
 
 /*
