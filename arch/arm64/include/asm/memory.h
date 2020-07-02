@@ -231,8 +231,6 @@ static inline unsigned long kaslr_offset(void)
 		mte_set_mem_tag_range(address, size, tag, ignore_tag)
 #define arch_random_tag(valid_tags) \
 		mte_random_tag(valid_tags)
-#define arch_init_tags(max_tags) \
-		mte_init_tags(max_tags)
 #define arch_is_hw_tags_enabled() \
 		system_supports_mte()
 #endif /* CONFIG_KASAN_HW_TAGS */
