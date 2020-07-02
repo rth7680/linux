@@ -2160,6 +2160,8 @@ struct vm_struct *find_vm_area(const void *addr)
 {
 	struct vmap_area *va;
 
+	addr = kasan_reset_tag(addr);
+
 	va = find_vmap_area((unsigned long)addr);
 	if (!va)
 		return NULL;
