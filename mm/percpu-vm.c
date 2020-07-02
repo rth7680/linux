@@ -292,6 +292,9 @@ static int pcpu_populate_chunk(struct pcpu_chunk *chunk,
 
 	size = (page_end - page_start) * PAGE_SIZE;
 	off = page_start * PAGE_SIZE;
+
+	chunk->base_addr = kasan_set_tag_vmalloc(chunk->base_addr);
+
 	start = (unsigned long)chunk->base_addr + off;
 	end = (unsigned long)chunk->base_addr + off + size;
 

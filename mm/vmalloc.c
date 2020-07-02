@@ -2558,6 +2558,8 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	if (ret)
 		goto fail;
 
+	addr = kasan_set_tag_vmalloc(addr);
+
 	kasan_unpoison_vmalloc(addr, real_size);
 
 	return addr;
