@@ -7,9 +7,16 @@
 
 #include "kasan.h"
 
+#define EXCLUDE_TAGS_NR		2
+
 void kasan_init_tags(void)
 {
-	init_tags(KASAN_TAG_MAX);
+	u8 exclude_tags[EXCLUDE_TAGS_NR];
+
+	exclude_tags[0] = KASAN_VMALLOC_VALID;
+	exclude_tags[1] = KASAN_VMALLOC_INVALID;
+
+	init_tags(KASAN_TAG_MAX, exclude_tags, EXCLUDE_TAGS_NR);
 }
 
 u8 random_tag(void)
