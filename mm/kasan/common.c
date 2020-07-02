@@ -748,6 +748,11 @@ int kasan_populate_vmalloc(unsigned long addr, unsigned long size)
 	return 0;
 }
 
+void *kasan_set_tag_vmalloc(void *addr)
+{
+	return addr;
+}
+
 /*
  * Poison the shadow for a vmalloc region. Called as part of the
  * freeing process at the time the region is freed.

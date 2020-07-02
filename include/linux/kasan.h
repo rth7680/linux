@@ -226,6 +226,7 @@ static inline void *kasan_reset_tag(const void *addr)
 
 #ifdef CONFIG_KASAN_VMALLOC
 int kasan_populate_vmalloc(unsigned long addr, unsigned long size);
+void *kasan_set_tag_vmalloc(void *addr);
 void kasan_poison_vmalloc(const void *start, unsigned long size);
 void kasan_unpoison_vmalloc(const void *start, unsigned long size);
 void kasan_release_vmalloc(unsigned long start, unsigned long end,
@@ -237,7 +238,10 @@ static inline int kasan_populate_vmalloc(unsigned long start,
 {
 	return 0;
 }
-
+static inline void *kasan_set_tag_vmalloc(void *addr)
+{
+	return addr;
+}
 static inline void kasan_poison_vmalloc(const void *start, unsigned long size)
 { }
 static inline void kasan_unpoison_vmalloc(const void *start, unsigned long size)

@@ -306,6 +306,17 @@ int kasan_populate_vmalloc(unsigned long addr, unsigned long size)
 					     KASAN_VMALLOC_INVALID);
 }
 
+void *kasan_set_tag_vmalloc(void *addr)
+{
+	if (!is_vmalloc_or_module_addr(addr))
+		return addr;
+
+	if (kasan_hw_tags_enabled())
+		addr = set_tag(addr, KASAN_VMALLOC_VALID);
+
+	return addr;
+}
+
 void kasan_poison_vmalloc(const void *start, unsigned long size)
 {
 	void *__addr;
