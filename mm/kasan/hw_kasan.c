@@ -332,6 +332,7 @@ void kasan_poison_vmalloc(const void *start, unsigned long size)
 
 	kasan_update_page_tag_vmalloc(start, KASAN_VMALLOC_INVALID);
 }
+EXPORT_SYMBOL_GPL(kasan_poison_vmalloc);
 
 void kasan_unpoison_vmalloc(const void *start, unsigned long size)
 {
@@ -347,6 +348,7 @@ void kasan_unpoison_vmalloc(const void *start, unsigned long size)
 
 	kasan_update_page_tag_vmalloc(start, tag);
 }
+EXPORT_SYMBOL_GPL(kasan_unpoison_vmalloc);
 
 void kasan_release_vmalloc(unsigned long start, unsigned long end,
 			   unsigned long free_region_start,
