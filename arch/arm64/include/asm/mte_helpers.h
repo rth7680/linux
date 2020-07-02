@@ -25,7 +25,7 @@ void *mte_set_mem_tag_range(void *address, size_t size,
 void mte_set_tag_range(void *addr, size_t size);
 u8 mte_random_tag(void);
 u64 mte_get_random_tag(void);
-void mte_init_tags(u64 max_tags);
+void mte_init_tags(u64 max_tags, u8 *exclude_tags, int exclude_tags_nr);
 #else
 #define mte_get_ptr_tag(ptr)		0xf
 

@@ -140,9 +140,13 @@ u8 mte_random_tag(void)
 	return (u8)tag;
 }
 
-void mte_init_tags(u64 max_tags)
+void mte_init_tags(u64 max_tags, u8 *exclude_tags, int exclude_tags_nr)
 {
+	int i;
 	u64 incl = ((1ULL << ((max_tags & MTE_TAG_MAX) + 1)) - 1);
+
+	for (i = 0; i < exclude_tags_nr; i++)
+		incl &= ~(1ULL << (exclude_tags[i] & MTE_TAG_MAX));
 
 	gcr_kernel_excl = ~incl & SYS_GCR_EL1_EXCL_MASK;
 }
