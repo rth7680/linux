@@ -5,19 +5,21 @@
 #ifndef __ASM_MTE_H
 #define __ASM_MTE_H
 
-#include <linux/bits.h>
+#include <asm/mte_helpers.h>
 
 #define MTE_GRANULE_SIZE	UL(16)
+
 #define MTE_GRANULE_MASK	(~(MTE_GRANULE_SIZE - 1))
-#define MTE_TAG_SHIFT		56
-#define MTE_TAG_SIZE		4
-#define MTE_TAG_MASK		GENMASK((MTE_TAG_SHIFT + (MTE_TAG_SIZE - 1)), MTE_TAG_SHIFT)
-#define MTE_TAG_MAX		(MTE_TAG_MASK >> MTE_TAG_SHIFT)
+
+#define MTE_ALIGN_GRANULE	UL(MTE_GRANULE_SIZE - 1)
+#define MTE_ALIGN_UP_SIZE(size) \
+	((size + MTE_ALIGN_GRANULE) & ~MTE_ALIGN_GRANULE)
 
 #ifndef __ASSEMBLY__
 
 #include <linux/bitfield.h>
 #include <linux/page-flags.h>
+#include <linux/types.h>
 
 #include <asm/pgtable-types.h>
 
@@ -40,6 +42,7 @@ void mte_free_tag_storage(char *storage);
 /* track which pages have valid allocation tags */
 #define PG_mte_tagged	PG_arch_2
 
+
 /*
  * panic_on_mte_fault is a kernel boot option that represents the way on
  * which the exception handler behaves:
@@ -50,9 +53,6 @@ void mte_free_tag_storage(char *storage);
  *                    fault.
  */
 extern int panic_on_mte_fault;
-
-#define mte_get_ptr_tag(ptr) \
-		((u8)(FIELD_GET(MTE_TAG_MASK, (u64)ptr)))
 
 void mte_sync_tags(pte_t *ptep, pte_t pte);
 void mte_copy_page_tags(void *kto, const void *kfrom);
@@ -72,7 +72,6 @@ int mte_ptrace_copy_tags(struct task_struct *child, long request,
 #define PG_mte_tagged	0
 
 #define panic_on_mte_fault			1
-#define mte_get_ptr_tag(ptr)			0xf
 
 static inline void mte_sync_tags(pte_t *ptep, pte_t pte)
 {

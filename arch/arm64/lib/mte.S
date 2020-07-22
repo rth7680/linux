@@ -161,3 +161,32 @@ SYM_FUNC_START(mte_get_tagged_addr)
 
 	ret
 SYM_FUNC_END(mte_get_tagged_addr)
+
+/*
+ * Set Tag in Memory
+ *   x0 - source pointer
+ *   x1 - size
+ *
+ * Note: size is expected to be MTE_GRANULE_SIZE aligned
+ */
+SYM_FUNC_START(mte_set_tag_range)
+	/* if (src == NULL) return; */
+	cbz	x0, 2f
+	/* if (size == 0) return; */
+	cbz	x1, 2f
+1:	stg	x0, [x0]
+	add	x0, x0, #MTE_GRANULE_SIZE
+	sub	x1, x1, #MTE_GRANULE_SIZE
+	cbnz	x1, 1b
+2:	ret
+SYM_FUNC_END(mte_set_tag_range)
+
+/*
+ * Get Random Tag
+ */
+SYM_FUNC_START(mte_get_random_tag)
+	mov	x0, #0
+	irg	x0, x0
+
+	ret
+SYM_FUNC_END(mte_get_random_tag)

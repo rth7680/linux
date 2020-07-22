@@ -14,9 +14,12 @@
 #include <linux/swap.h>
 #include <linux/swapops.h>
 #include <linux/thread_info.h>
+#include <linux/types.h>
 #include <linux/uio.h>
 
+#include <asm/barrier.h>
 #include <asm/cpufeature.h>
+#include <asm/kasan.h>
 #include <asm/mte.h>
 #include <asm/ptrace.h>
 #include <asm/sysreg.h>
@@ -86,6 +89,49 @@ int memcmp_pages(struct page *page1, struct page *page2)
 		return addr1 != addr2;
 
 	return ret;
+}
+
+void * __must_check mte_set_mem_tag_range(void *addr, size_t size,
+					  u8 tag, bool ignore_tag)
+{
+	void *ptr = addr;
+	void *tagged_ptr;
+
+	if ((!system_supports_mte()) || (size == 0))
+		return addr;
+
+	if (!ignore_tag)
+		ptr = (void *)__tag_set(ptr, tag);
+
+	tagged_ptr = ptr;
+	size = MTE_ALIGN_UP_SIZE(size);
+
+	mte_set_tag_range(ptr, size);
+
+	/*
+	 * mte_set_mem_tag_range() can be invoked in a multi-threaded
+	 * context, ensure that tags are written in memory before the
+	 * reference is used.
+	 */
+	smp_wmb();
+
+	return tagged_ptr;
+}
+
+u8 mte_random_tag(void)
+{
+	u64 tag = 0xFULL << MTE_TAG_SHIFT;
+
+	if (system_supports_mte())
+		tag = mte_get_random_tag();
+
+	/*
+	 * This operation is done to preserve compatibility with the tags
+	 * scheme of KASAN (0xF<tag>).
+	 */
+	tag = 0xF0 | ((tag >> MTE_TAG_SHIFT) & 0xF);
+
+	return (u8)tag;
 }
 
 static void update_sctlr_el1_tcf0(u64 tcf0)
