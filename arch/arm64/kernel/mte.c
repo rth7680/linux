@@ -100,6 +100,9 @@ void * __must_check mte_set_mem_tag_range(void *addr, size_t size,
 	void *ptr = addr;
 	void *tagged_ptr;
 
+	if (IS_ENABLED(CONFIG_KASAN_HW_TAGS))
+		BUILD_BUG_ON(MTE_GRANULE_SIZE != (UL(1) << KASAN_SHADOW_SCALE_SHIFT));
+
 	if ((!system_supports_mte()) || (size == 0))
 		return addr;
 
