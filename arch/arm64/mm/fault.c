@@ -309,7 +309,33 @@ static void die_kernel_fault(const char *msg, unsigned long addr,
 	do_exit(SIGKILL);
 }
 
-static void report_tag_fault(unsigned long addr)
+static void mte_show_memory_status(unsigned long addr)
+{
+	int i;
+	unsigned long m_addr;
+
+	addr = addr - (8 * MTE_GRANULE_SIZE);
+
+	pr_alert("  [\t\t--- Memory Status ---\t\t]\n");
+	for (i = 0; i < 16; i++) {
+		m_addr = (unsigned long)mte_get_tagged_addr((void *)addr);
+
+		if (i == 8)
+			pr_alert("->[%d]:\t[0x%016lx]\t[0x%016lx]\n", i, addr, m_addr);
+		else
+			pr_alert("  [%d]:\t[0x%016lx]\t[0x%016lx]\n", i, addr, m_addr);
+
+		addr = addr + MTE_GRANULE_SIZE;
+	}
+	pr_alert("  [\t\t--- Memory Status ---\t\t]\n");
+
+	pr_alert("  [\t--- Memory Show Page Table Entry ---\t]\n");
+	/* If we land here addr != m_addr always */
+	show_pte(addr);
+	pr_alert("  [\t--- Memory Show Page Table Entry ---\t]\n");
+}
+
+static void mte_report_tag_fault(unsigned long addr)
 {
 	unsigned long tagged_addr =
 		(unsigned long)mte_get_tagged_addr((void *)addr);
@@ -318,6 +344,10 @@ static void report_tag_fault(unsigned long addr)
 			untagged_addr((__u64)addr),
 			mte_get_ptr_tag(addr),
 			mte_get_ptr_tag(tagged_addr));
+
+	if (panic_on_mte_fault) {
+		mte_show_memory_status(addr);
+	}
 }
 
 static void __do_kernel_fault(unsigned long addr, unsigned int esr,
@@ -344,7 +374,7 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 		else
 			msg = "read from unreadable memory";
 	} else if (is_el1_mte_sync_tag_check_fault(esr)) {
-		report_tag_fault(addr);
+		mte_report_tag_fault(addr);
 		msg = "memory tagging extension fault";
 	} else if (addr < PAGE_SIZE) {
 		msg = "NULL pointer dereference";
@@ -690,7 +720,7 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 
 static int do_tag_recovery(unsigned long addr)
 {
-	report_tag_fault(addr);
+	mte_report_tag_fault(addr);
 
 	/*
 	 * Disable Memory Tagging Extension Tag Checking on the local CPU
