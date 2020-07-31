@@ -272,6 +272,33 @@ void kasan_unpoison_task_stack(struct task_struct *task)
 }
 
 #ifdef CONFIG_KASAN_VMALLOC
+static void mte_show_memory_status(unsigned long addr, unsigned long size)
+{
+	int i;
+	unsigned long m_addr;
+
+	if (mte_get_ptr_tag(addr) != 0x8)
+		return;
+	{
+		static int j = 0;
+
+		if (j == 1)
+			return;
+
+		pr_alert("  [\t\t--- Memory Status ---\t\t]\n");
+		for (i = 0; i < (size / MTE_GRANULE_SIZE); i++) {
+			m_addr = (unsigned long)mte_get_tagged_addr((void *)addr);
+
+			pr_alert("  [%d]:\t[0x%016lx]\t[0x%016lx]\n", i, addr, m_addr);
+
+			addr = addr + MTE_GRANULE_SIZE;
+		}
+		pr_alert("  [\t\t--- Memory Status ---\t\t]\n");
+
+		j++;
+	}
+}
+
 static int kasan_update_page_tag_vmalloc(const void *addr, u8 tag)
 {
 	struct vm_struct *area;
@@ -347,6 +374,8 @@ void kasan_unpoison_vmalloc(const void *start, unsigned long size)
 	(void)__addr;
 
 	kasan_update_page_tag_vmalloc(start, tag);
+
+	mte_show_memory_status((unsigned long)start, size);
 }
 EXPORT_SYMBOL_GPL(kasan_unpoison_vmalloc);
 
